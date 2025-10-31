@@ -25,32 +25,34 @@ jobs:
           node-version: '22.16.0'
           cache: 'npm'
 
-      - name: Cache node modules
+      - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
 
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests with coverage
-        run: npm run test:coverage
+        run: npm test
         env:
           NODE_ENV: test
-        continue-on-error: true
+        continue-on-error: false
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=hackathon-starter
+            -Dsonar.organization=sonar-brettmiller
 
       - name: SonarCloud Quality Gate check
-        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
+        uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        continue-on-error: true
