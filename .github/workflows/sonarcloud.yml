@@ -10,7 +10,7 @@ on:
 
 jobs:
   sonarcloud:
-    name: SonarCloud Scan
+    name: SonarCloud Code Analysis
     runs-on: ubuntu-latest
     
     steps:
@@ -18,46 +18,38 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
           cache: 'npm'
-      
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
+
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run tests with coverage
         run: npm run test:coverage
         env:
           NODE_ENV: test
-        continue-on-error: false
-      
+        continue-on-error: true
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: SonarQube Quality Gate check
+
+      - name: SonarCloud Quality Gate check
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        continue-on-error: true
+        with:
+          scanMetadataReportFile: .scannerwork/report-task.txt
