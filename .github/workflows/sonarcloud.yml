@@ -25,41 +25,23 @@ jobs:
           node-version: '22.16.0'
           cache: 'npm'
 
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests with coverage
         run: npm test
+        continue-on-error: true
         env:
           NODE_ENV: test
-        continue-on-error: true
-
-      - name: Verify coverage report
-        run: |
-          if [ -d "coverage" ]; then
-            echo "Coverage directory found"
-            ls -la coverage/
-          else
-            echo "Coverage directory not found"
-          fi
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
 
-      - name: SonarCloud Quality Gate Check
+      - name: SonarCloud Quality Gate check
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        continue-on-error: true
