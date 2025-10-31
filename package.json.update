@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "test": "c8 --reporter=html --reporter=lcov --report-dir=tmp/coverage mocha --timeout 10000 --exit"
+  }
+}
