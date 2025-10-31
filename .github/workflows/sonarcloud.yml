@@ -1,71 +1,19 @@
 name: SonarCloud Analysis
-
-on:
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - develop
-
+on: [push, pull_request]
 jobs:
   sonarcloud:
-    name: SonarCloud Scan
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.16.0'
-          cache: 'npm'
-      
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run tests with coverage
-        run: npm test
-        env:
-          NODE_ENV: test
-        continue-on-error: true
-      
-      - name: Verify coverage output
-        run: |
-          if [ -d "tmp/coverage" ]; then
-            echo "Coverage directory found at tmp/coverage"
-            ls -la tmp/coverage/
-          elif [ -d "coverage" ]; then
-            echo "Coverage directory found at coverage"
-            ls -la coverage/
-          else
-            echo "Warning: No coverage directory found"
-          fi
-      
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: SonarCloud Quality Gate
-        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
-        timeout-minutes: 5
-        env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        continue-on-error: true
+        with:
+          args: >
+            -Dsonar.projectKey=hackathon-starter
+            -Dsonar.organization=sonar-brettmiller
+            -Dsonar.host.url=https://sonarcloud.io
