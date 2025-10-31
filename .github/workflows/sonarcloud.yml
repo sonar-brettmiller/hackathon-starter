@@ -43,10 +43,22 @@ jobs:
           npm run test:e2e-nokey || true
         continue-on-error: true
 
+      - name: Create sonar-project.properties
+        run: |
+          cat > sonar-project.properties << EOF
+          sonar.projectKey=hackathon-starter
+          sonar.organization=sonar-brettmiller
+          sonar.sources=.
+          sonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/*.test.js,**/*.spec.js
+          sonar.javascript.lcov.reportPaths=coverage/lcov.info
+          sonar.testExecutionReportPaths=test-report.xml
+          EOF
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: SonarCloud Quality Gate
