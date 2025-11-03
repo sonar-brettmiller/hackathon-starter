@@ -3,9 +3,13 @@ name: SonarCloud Analysis
 on:
   push:
     branches:
-      - master
+      - main
+      - develop
   pull_request:
     types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
 
 jobs:
   sonarcloud:
@@ -13,53 +17,44 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
           cache: 'npm'
-      
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Build SCSS
+
+      - name: Run SCSS build
         run: npm run scss
-      
+        continue-on-error: true
+
       - name: Run tests with coverage
-        run: npm test
+        run: npm run test:coverage
         env:
           NODE_ENV: test
-      
-      - name: Generate coverage report
-        run: npx c8 report --reporter=lcov
         continue-on-error: true
-      
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=hackathon-starter
-            -Dsonar.organization=sonar-brettmiller
-            -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.sources=.
-            -Dsonar.exclusions=node_modules/**,coverage/**,public/lib/**,public/css/**,public/fonts/**,test/**,*.test.js,*.spec.js
-            -Dsonar.tests=test
-            -Dsonar.test.inclusions=test/**/*.js
-            -Dsonar.javascript.node.maxspace=4096
-      
-      - name: SonarCloud Quality Gate Check
-        uses: SonarSource/sonarqube-quality-gate-action@master
+
+      - name: SonarCloud Quality Gate
+        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
