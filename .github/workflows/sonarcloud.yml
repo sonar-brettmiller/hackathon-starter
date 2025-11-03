@@ -4,12 +4,9 @@ on:
   push:
     branches:
       - main
-      - develop
+      - master
   pull_request:
     types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - develop
 
 jobs:
   sonarcloud:
@@ -17,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -28,16 +25,19 @@ jobs:
           node-version: '22.16.0'
           cache: 'npm'
 
-      - name: Cache node modules
+      - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true
 
       - name: Run tests with coverage
         run: npm test
@@ -46,14 +46,10 @@ jobs:
           NODE_ENV: test
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=hackathon-starter
-            -Dsonar.organization=sonar-brettmiller
+          SONAR_HOST_URL: https://sonarcloud.io
 
       - name: SonarCloud Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
