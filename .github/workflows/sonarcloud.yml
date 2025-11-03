@@ -43,7 +43,7 @@ jobs:
           NODE_ENV: test
       
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarcloud-github-action@v3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -51,7 +51,6 @@ jobs:
           args: >
             -Dsonar.projectKey=hackathon-starter
             -Dsonar.organization=sonar-brettmiller
-            -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.javascript.lcov.reportPaths=tmp/coverage/lcov.info
             -Dsonar.sources=.
             -Dsonar.exclusions=**/node_modules/**,**/tmp/**,**/coverage/**,**/*.test.js,**/test/**,**/public/js/lib/**,**/public/css/**
