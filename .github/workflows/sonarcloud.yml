@@ -25,25 +25,28 @@ jobs:
           node-version: '22.16.0'
           cache: 'npm'
 
-      - name: Cache SonarCloud packages
+      - name: Cache node modules
         uses: actions/cache@v4
         with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Build SCSS
-        run: npm run scss
-        continue-on-error: true
 
       - name: Run tests with coverage
         run: npm test
         env:
           NODE_ENV: test
-        continue-on-error: true
+        continue-on-error: false
+
+      - name: List coverage files
+        run: |
+          echo "Checking for coverage files..."
+          ls -la coverage/ || echo "No coverage directory found"
+          ls -la coverage/lcov.info || echo "No lcov.info found"
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
@@ -51,8 +54,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: SonarCloud Quality Gate
-        uses: SonarSource/sonarqube-quality-gate-action@v1
+      - name: SonarCloud Quality Gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
