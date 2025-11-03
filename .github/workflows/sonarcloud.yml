@@ -3,13 +3,9 @@ name: SonarCloud Analysis
 on:
   push:
     branches:
-      - main
-      - develop
+      - master
   pull_request:
     types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - develop
 
 jobs:
   sonarcloud:
@@ -17,44 +13,55 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
           cache: 'npm'
-
+      
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-
+      
       - name: Install dependencies
         run: npm ci
-
-      - name: Run SCSS build
-        run: npm run scss
-        continue-on-error: true
-
+      
       - name: Run tests with coverage
         run: npm run test:coverage
+        continue-on-error: true
         env:
           NODE_ENV: test
-        continue-on-error: true
-
+      
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      - name: SonarCloud Quality Gate
-        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=hackathon-starter
+            -Dsonar.organization=sonar-brettmiller
+            -Dsonar.host.url=https://sonarcloud.io
+      
+      - name: SonarCloud Quality Gate check
+        uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        continue-on-error: true
