@@ -3,7 +3,8 @@ name: SonarCloud Analysis
 on:
   push:
     branches:
-      - master
+      - main
+      - develop
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -21,23 +22,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.16.0'
+          node-version: '22'
           cache: 'npm'
-
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
 
       - name: Install dependencies
         run: npm ci
@@ -45,43 +31,22 @@ jobs:
       - name: Build SCSS
         run: npm run scss
 
-      - name: Run unit tests with coverage
+      - name: Run tests with coverage
         run: npm test
-        continue-on-error: true
-
-      - name: Run E2E tests
-        run: npm run test:e2e
-        continue-on-error: true
         env:
-          CI: true
-
-      - name: Run E2E tests (no key)
-        run: npm run test:e2e-nokey
-        continue-on-error: true
-        env:
-          CI: true
+          NODE_ENV: test
+          MONGODB_URI: mongodb://localhost:27017/test
+        continue-on-error: false
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=hackathon-starter
-            -Dsonar.organization=sonar-brettmiller
-            -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.javascript.lcov.reportPaths=tmp/coverage/lcov.info
-            -Dsonar.coverage.exclusions=**/__tests__/**,**/test/**,**/tests/**,**/*.test.js,**/*.spec.js
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/coverage/**,**/tmp/**,**/*.min.js,**/public/js/lib/**
-            -Dsonar.sources=.
-            -Dsonar.tests=test
-            -Dsonar.test.inclusions=test/**/*.js,test/**/*.test.js
-            -Dsonar.javascript.node.maxspace=4096
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Quality Gate Check
-        uses: SonarSource/sonarqube-quality-gate-action@master
+      - name: SonarCloud Quality Gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v2
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          scanMetadataReportFile: .scannerwork/report-task.txt
+        continue-on-error: false
