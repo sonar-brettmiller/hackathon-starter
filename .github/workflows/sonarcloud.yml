@@ -4,12 +4,10 @@ on:
   push:
     branches:
       - main
+      - master
       - develop
   pull_request:
     types: [opened, synchronize, reopened]
-    branches:
-      - main
-      - develop
 
 jobs:
   sonarcloud:
@@ -31,22 +29,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build SCSS
+      - name: Run SCSS build
         run: npm run scss
 
       - name: Run tests with coverage
         run: npm test
         env:
           NODE_ENV: test
-        continue-on-error: false
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
 
-      - name: SonarCloud Quality Gate check
+      - name: SonarCloud Quality Gate
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         timeout-minutes: 5
         env:
